@@ -57,10 +57,11 @@ public class Coordinator {
         OutputStreamWriter writer;
         for (int i = 0; i < participants.size(); i++) {
             writer = new OutputStreamWriter(participants.get(i).getConnection().getOutputStream());
-            writer.write("DETAILS");
+            writer.write("DETAILS ");
             for (int j = 0; j < participants.size(); j++)
                 if (i != j)
                     writer.write(participants.get(j).getPort() + "\n");
+            writer.flush();
         }
     }
 
