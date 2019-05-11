@@ -5,6 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class Coordinator {
     private int port, participantsNr;
@@ -16,7 +17,7 @@ public class Coordinator {
         Coordinator coordinator = new Coordinator();
 
         // just for testings
-        args = coordinator.testing();
+        //args = coordinator.testing();
 
         coordinator.parseArgs(args);
         coordinator.start();
@@ -35,13 +36,13 @@ public class Coordinator {
     }
 
     private void getPorts () {
-        InputStreamReader reader;
+        Scanner reader;
         for (ParticipantDetails p : participants) {
             try {
-                reader = new InputStreamReader(p.getConnection().getInputStream());
-                while (!reader.ready()) {
+                reader = new Scanner(p.getConnection().getInputStream());
+                while (!reader.hasNext()) {
                 }
-                p.setPort(reader.read());
+                p.setPort(Integer.parseInt(reader.nextLine().split(" ")[1]));
                 System.out.println("Port " + p.getPort() + " receive!");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -53,19 +54,19 @@ public class Coordinator {
     }
 
     private void sendInfo () throws IOException {
-        OutputStream writer;
+        OutputStreamWriter writer;
         for (int i = 0; i < participants.size(); i++) {
-            writer = participants.get(i).getConnection().getOutputStream();
+            writer = new OutputStreamWriter(participants.get(i).getConnection().getOutputStream());
+            writer.write("DETAILS");
             for (int j = 0; j < participants.size(); j++)
                 if (i != j)
-                    writer.write(participants.get(j).getPort());
+                    writer.write(participants.get(j).getPort() + "\n");
         }
     }
 
     private void establishConnections() {
 
         for (int i = 0; i < participantsNr; i++) {
-            System.out.println("aici");
             try {
                 participants.add(new ParticipantDetails(serverSocket.accept()));
             } catch (IOException e) {
@@ -91,7 +92,7 @@ public class Coordinator {
     private String[] testing () {
         String[] args = new String[5];
         args[0] = "12345";
-        args[1] = "1";
+        args[1] = "2";
         args[2] = "A";
         args[3] = "B";
         args[4] = "C";
@@ -104,6 +105,9 @@ public class Coordinator {
 
         ParticipantDetails (Socket connection) {
             this.connection = connection;
+        }
+        ParticipantDetails (int port) {
+            this.port = port;
         }
         public int getPort() {
             return port;
