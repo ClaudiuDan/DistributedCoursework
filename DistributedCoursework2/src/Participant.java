@@ -6,7 +6,15 @@ import java.net.Socket;
 import java.util.*;
 
 public class Participant {
-    private int serverPort, port, timeout, failureCondition;
+    private int serverPort;
+    private int port;
+
+    public int getTimeout() {
+        return timeout;
+    }
+
+    private int timeout;
+    private int failureCondition;
     private Socket serverConnection;
     Scanner coordinatorReader;
     OutputStreamWriter coordinatorWriter;
@@ -30,22 +38,69 @@ public class Participant {
         getOtherPorts();
         connectToOtherParticipants();
         getOptions();
+        vote();
+        runFirstRoundConsensusAlgorithm();
+
+    }
+    private void runFirstRoundConsensusAlgorithm() {
+        for (Socket s : outputSocketsMap.values()) {
+            sendMessage(s, "VOTE " + port + " " + vote);
+        }
     }
 
+    private void decideOutcome() {
+        sendMessage(serverConnection, "GATA");
+    }
+
+    synchronized public void announceFailure () {
+        fails++;
+    }
+
+    private Map<Integer, String> votes = new HashMap<>();
+
+    private int timeouts = 0, fails = 0;
+    private List<Integer> newVotes = new ArrayList<>();
+    synchronized void addVote (Integer port, String vote) {
+        timeouts = 0;
+        if (votes.get(port) == null ) {
+            votes.put(port, vote);
+            System.out.println(port + " added vote " + vote);
+            newVotes.add(port);
+        }
+    }
+    //TODO disconnect when all participants have timeouted
+
+    synchronized public void increaseTimeouts () {
+        timeouts++;
+        System.out.println(timeouts);
+        if (timeouts == ports.size() - fails) {
+            decideOutcome();
+        }
+    }
+    private String vote;
+
+    private void vote () {
+        System.out.println(" size " + options.size());
+        vote = new String(options.get((new Random().nextInt(options.size()))));
+        votes.put(port, vote);
+        System.out.println("I chose " + vote);
+    }
     List<String> options = new ArrayList<>();
+
     private void getOptions () {
         String options;
         while (!coordinatorReader.hasNext()) {}
         options =  coordinatorReader.nextLine();
+        System.out.println("optiuni " + options);
         String[] spittedOptions = options.split(" ");
         for (int i = 1; i < spittedOptions.length; i++) {
             this.options.add(spittedOptions[i]);
             System.out.println("options receive on " + this.port + " " + spittedOptions[i]);
         }
     }
-
     private ServerSocket serverSocket;
-    Map<Integer, Socket> outputSockets = new HashMap<>();
+
+    Map<Integer, Socket> outputSocketsMap = new HashMap<>();
     private void connectToOtherParticipants () {
         Thread thread = new Thread(new ParticipantAcceptThread(this, ports, serverSocket));
         thread.start();
@@ -53,30 +108,31 @@ public class Participant {
         for (Integer port : ports)
             addOutputSocket(port);
     }
-
      private void addOutputSocket (Integer port) {
         try {
             System.out.println("aici");
             Socket socket = new Socket("localhost", port);
             System.out.println(this.port + " connected to " + port);
-            outputSockets.put(port, socket);
+            outputSocketsMap.put(port, socket);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private List<Socket> inputSockets = new ArrayList<>();
+
     synchronized void addInputSocket (Socket socket) {
         inputSockets.add(socket);
     }
-
     List<Integer> ports = new ArrayList<>();
+
     private void getOtherPorts() {
         try {
             coordinatorReader = new Scanner(serverConnection.getInputStream());
             String inputPorts;
             while (!coordinatorReader.hasNext()) {}
             inputPorts =  coordinatorReader.nextLine();
+            System.out.println("ports " + inputPorts);
             String[] splittedPorts = inputPorts.split(" ");
             for (int i = 1; i < splittedPorts.length; i++)
                 ports.add(Integer.valueOf(splittedPorts[i]));
@@ -84,7 +140,6 @@ public class Participant {
             e.printStackTrace();
         }
     }
-
     private void sendPortToServer() {
         try {
             coordinatorWriter = new OutputStreamWriter(serverConnection.getOutputStream());
@@ -105,6 +160,18 @@ public class Participant {
         }
     }
 
+    private void sendMessage (Socket s, String message) {
+        try {
+            System.out.println ("I sent to " + port + " " + message);
+            OutputStreamWriter writer = new OutputStreamWriter(s.getOutputStream());
+            writer.write(message + "\n");
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
     private void parseInput (String[] args) {
         serverPort = Integer.parseInt(args[0]);
         port = Integer.parseInt(args[1]);
@@ -117,26 +184,4 @@ public class Participant {
         failureCondition = Integer.parseInt(args[3]);
     }
 
-    class ParticipantConnection {
-        Socket outputSocket;
-
-        public Socket getOutputSocket() {
-            return outputSocket;
-        }
-
-        public void setOutputSocket(Socket outputSocket) {
-            this.outputSocket = outputSocket;
-        }
-
-        public Socket getInputSocket() {
-            return inputSocket;
-        }
-
-        public void setInputSocket(Socket inputSocket) {
-            this.inputSocket = inputSocket;
-        }
-
-        Socket inputSocket;
-
-    }
 }

@@ -34,6 +34,22 @@ public class Coordinator {
             e.printStackTrace();
             System.out.println ("Couldn't send message to the participants");
         }
+        getOutcome();
+    }
+
+    private void getOutcome () {
+        BufferedReader reader;
+        while (true) {
+            for (ParticipantDetails p : participants) {
+                try {
+                    if (p.getReader().ready()) {
+                        System.out.println(p.getReader().readLine());
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     private void getPorts () {
@@ -60,6 +76,7 @@ public class Coordinator {
             writer = new OutputStreamWriter(participants.get(i).getConnection().getOutputStream());
             writer.write("VOTE_OPTIONS ");
             for (String o : options) {
+                System.out.println(o);
                 writer.write(o + " ");
             }
             writer.write("\n");
@@ -74,8 +91,11 @@ public class Coordinator {
             writer = new OutputStreamWriter(participants.get(i).getConnection().getOutputStream());
             writer.write("DETAILS ");
             for (int j = 0; j < participants.size(); j++)
-                if (i != j)
-                    writer.write(participants.get(j).getPort() + "\n");
+                if (i != j) {
+                    writer.write(participants.get(j).getPort() + " ");
+                    System.out.println (" portul este "+ participants.get(j).getPort());
+                }
+            writer.write("\n");
             writer.flush();
         }
     }
@@ -119,8 +139,18 @@ public class Coordinator {
         int port;
         Socket connection;
 
+        public BufferedReader getReader() {
+            return reader;
+        }
+
+        BufferedReader reader;
         ParticipantDetails (Socket connection) {
             this.connection = connection;
+            try {
+                reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         ParticipantDetails (int port) {
             this.port = port;
