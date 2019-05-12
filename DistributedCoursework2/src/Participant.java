@@ -51,22 +51,23 @@ public class Participant {
     private void decideOutcome() {
         sendMessage(serverConnection, "GATA");
         Map<String, Integer> voteCounter = new HashMap<>();
-        for (Integer port : votes.keySet()) {
-            if (voteCounter.get(port) != null)
-                voteCounter.put(s, voteCounter.get(port) + 1);
+        for (Integer p : votes.keySet()) {
+            if (voteCounter.get(votes.get(p)) != null)
+                voteCounter.put(votes.get(p), voteCounter.get(votes.get(p)) + 1);
             else 
-                voteCounter.put(s, 0);
+                voteCounter.put(votes.get(p), 0);
         }
-        int maxim = -1, candidate;
+        int maxim = -1;
+        String candidate = null;
         for (String s : voteCounter.keySet())
             if (maxim < voteCounter.get(s)) {
                 maxim = voteCounter.get(s);
                 candidate = s;
             }
-        if (maxim >= participants / 2 + 1)
-            sendMessage(serverConnection, s)
+        if (maxim >= ports.size() / 2 + 1)
+            sendMessage(serverConnection, candidate);
         else
-            sendMessage(server, null);
+            sendMessage(serverConnection, null);
     }
 
     synchronized public void announceFailure () {
@@ -179,7 +180,6 @@ public class Participant {
 
     private void sendMessage (Socket s, String message) {
         try {
-            System.out.println ("I sent to " + port + " " + message);
             OutputStreamWriter writer = new OutputStreamWriter(s.getOutputStream());
             writer.write(message + "\n");
             writer.flush();

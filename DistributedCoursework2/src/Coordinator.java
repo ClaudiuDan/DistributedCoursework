@@ -1,5 +1,3 @@
-import org.omg.CORBA.SystemException;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -38,7 +36,6 @@ public class Coordinator {
     }
 
     private void getOutcome () {
-        BufferedReader reader;
         while (true) {
             for (ParticipantDetails p : participants) {
                 try {
