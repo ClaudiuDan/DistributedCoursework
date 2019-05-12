@@ -29,6 +29,19 @@ public class Participant {
         sendPortToServer();
         getOtherPorts();
         connectToOtherParticipants();
+        getOptions();
+    }
+
+    List<String> options = new ArrayList<>();
+    private void getOptions () {
+        String options;
+        while (!coordinatorReader.hasNext()) {}
+        options =  coordinatorReader.nextLine();
+        String[] spittedOptions = options.split(" ");
+        for (int i = 1; i < spittedOptions.length; i++) {
+            this.options.add(spittedOptions[i]);
+            System.out.println("options receive on " + this.port + " " + spittedOptions[i]);
+        }
     }
 
     private ServerSocket serverSocket;
@@ -36,7 +49,6 @@ public class Participant {
     private void connectToOtherParticipants () {
         Thread thread = new Thread(new ParticipantAcceptThread(this, ports, serverSocket));
         thread.start();
-        System.out.println("aici pre");
 
         for (Integer port : ports)
             addOutputSocket(port);
@@ -70,7 +82,6 @@ public class Participant {
                 ports.add(Integer.valueOf(splittedPorts[i]));
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("Couldn't read ports from coordinator");
         }
     }
 

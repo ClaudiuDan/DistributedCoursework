@@ -11,7 +11,7 @@ public class Coordinator {
     private int port, participantsNr;
     private ServerSocket serverSocket;
     private List<ParticipantDetails> participants = new ArrayList<>();
-    List options;
+    List<String> options;
 
     public static void main (String[] args) {
         Coordinator coordinator = new Coordinator();
@@ -28,10 +28,11 @@ public class Coordinator {
         getPorts();
         try {
             sendInfo();
+            sendOptions();
         }
         catch (IOException e) {
             e.printStackTrace();
-            System.out.println ("Couldn't send info to the participants");
+            System.out.println ("Couldn't send message to the participants");
         }
     }
 
@@ -51,6 +52,20 @@ public class Coordinator {
 
         }
 
+    }
+
+    private void sendOptions () throws IOException {
+        OutputStreamWriter writer;
+        for (int i = 0; i < participants.size(); i++) {
+            writer = new OutputStreamWriter(participants.get(i).getConnection().getOutputStream());
+            writer.write("VOTE_OPTIONS ");
+            for (String o : options) {
+                writer.write(o + " ");
+            }
+            writer.write("\n");
+
+            writer.flush();
+        }
     }
 
     private void sendInfo () throws IOException {
@@ -80,7 +95,7 @@ public class Coordinator {
     private void parseArgs (String[] args) {
         port = Integer.parseInt(args[0]);
         participantsNr = Integer.parseInt(args[1]);
-        options = new ArrayList();
+        options = new ArrayList<>();
         try {
             serverSocket = new ServerSocket(port);
         } catch (IOException e) {
