@@ -50,6 +50,23 @@ public class Participant {
 
     private void decideOutcome() {
         sendMessage(serverConnection, "GATA");
+        Map<String, Integer> voteCounter = new HashMap<>();
+        for (Integer port : votes.keySet()) {
+            if (voteCounter.get(port) != null)
+                voteCounter.put(s, voteCounter.get(port) + 1);
+            else 
+                voteCounter.put(s, 0);
+        }
+        int maxim = -1, candidate;
+        for (String s : voteCounter.keySet())
+            if (maxim < voteCounter.get(s)) {
+                maxim = voteCounter.get(s);
+                candidate = s;
+            }
+        if (maxim >= participants / 2 + 1)
+            sendMessage(serverConnection, s)
+        else
+            sendMessage(server, null);
     }
 
     synchronized public void announceFailure () {
