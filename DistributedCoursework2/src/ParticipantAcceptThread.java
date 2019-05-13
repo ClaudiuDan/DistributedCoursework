@@ -24,15 +24,15 @@ public class ParticipantAcceptThread implements Runnable {
 
     @Override
     public void run() {
-        try {
-            for (int i = 0; i < ports.size(); i++) {
+        for (int i = 0; i < ports.size(); i++) {
+            try {
                 Socket socket = serverSocket.accept();
                 socket.setSoTimeout(participant.getTimeout());
                 participant.addInputSocket(socket);
                 (new Thread(new ListenerThread(participant, new BufferedReader(new InputStreamReader(socket.getInputStream()))))).start();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            participant.announceFailure();
         }
     }
 
@@ -64,7 +64,8 @@ public class ParticipantAcceptThread implements Runnable {
                     }
                 }
                 catch (IOException e) {
-                    e.printStackTrace();
+
+                    participant.announceFailure();
                 }
             }
         }

@@ -1,8 +1,7 @@
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.*;
 
 public class Participant {
@@ -16,7 +15,7 @@ public class Participant {
     private int timeout;
     private int failureCondition;
     private Socket serverConnection;
-    Scanner coordinatorReader;
+    BufferedReader coordinatorReader;
     OutputStreamWriter coordinatorWriter;
     public static void main (String[] args) {
         Participant participant = new Participant();
@@ -47,15 +46,22 @@ public class Participant {
             sendMessage(s, "VOTE " + port + " " + vote);
         }
     }
+    private List<Thread> threads = new ArrayList<>();
 
     private void decideOutcome() {
-        sendMessage(serverConnection, "GATA");
+        if (port == 12346) {
+            for (Thread t : threads)
+                t.interrupt();
+            System.exit(0);
+        }
         Map<String, Integer> voteCounter = new HashMap<>();
+        String message = new String(" ");
         for (Integer p : votes.keySet()) {
+            message = message + String.valueOf(p) + " ";
             if (voteCounter.get(votes.get(p)) != null)
                 voteCounter.put(votes.get(p), voteCounter.get(votes.get(p)) + 1);
             else 
-                voteCounter.put(votes.get(p), 0);
+                voteCounter.put(votes.get(p), 1);
         }
         int maxim = -1;
         String candidate = null;
@@ -64,10 +70,31 @@ public class Participant {
                 maxim = voteCounter.get(s);
                 candidate = s;
             }
-        if (maxim >= ports.size() / 2 + 1)
-            sendMessage(serverConnection, candidate);
+        System.out.println(maxim + " " + candidate);
+        if (maxim >= votes.keySet().size() / 2 + 1) {
+            System.out.println("e majoritate");
+            sendMessage(serverConnection, candidate + message);
+        }
         else
             sendMessage(serverConnection, null);
+
+        waitForRestart();
+    }
+
+    private void waitForRestart() {
+        try {
+            System.out.println("waiting for restart");
+            serverConnection.setSoTimeout(60000);
+            if (coordinatorReader.readLine().equals("RESTART")) {
+                System.out.println("Dam restart");
+                serverConnection.setSoTimeout(0);
+            }
+        } catch (IOException e) {
+            for (Thread t : threads)
+                t.interrupt();
+            System.exit(0);
+        }
+
     }
 
     synchronized public void announceFailure () {
@@ -107,13 +134,19 @@ public class Participant {
 
     private void getOptions () {
         String options;
-        while (!coordinatorReader.hasNext()) {}
-        options =  coordinatorReader.nextLine();
-        System.out.println("optiuni " + options);
-        String[] spittedOptions = options.split(" ");
-        for (int i = 1; i < spittedOptions.length; i++) {
-            this.options.add(spittedOptions[i]);
-            System.out.println("options receive on " + this.port + " " + spittedOptions[i]);
+        try {
+            while (!coordinatorReader.ready()) {
+            }
+            options = coordinatorReader.readLine();
+            System.out.println("optiuni " + options);
+            String[] spittedOptions = options.split(" ");
+            for (int i = 1; i < spittedOptions.length; i++) {
+                this.options.add(spittedOptions[i]);
+                System.out.println("options receive on " + this.port + " " + spittedOptions[i]);
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
         }
     }
     private ServerSocket serverSocket;
@@ -121,6 +154,7 @@ public class Participant {
     Map<Integer, Socket> outputSocketsMap = new HashMap<>();
     private void connectToOtherParticipants () {
         Thread thread = new Thread(new ParticipantAcceptThread(this, ports, serverSocket));
+        threads.add(thread);
         thread.start();
 
         for (Integer port : ports)
@@ -146,10 +180,10 @@ public class Participant {
 
     private void getOtherPorts() {
         try {
-            coordinatorReader = new Scanner(serverConnection.getInputStream());
+            coordinatorReader = new BufferedReader(new InputStreamReader(serverConnection.getInputStream()));
             String inputPorts;
-            while (!coordinatorReader.hasNext()) {}
-            inputPorts =  coordinatorReader.nextLine();
+            while (!coordinatorReader.ready()) {}
+            inputPorts =  coordinatorReader.readLine();
             System.out.println("ports " + inputPorts);
             String[] splittedPorts = inputPorts.split(" ");
             for (int i = 1; i < splittedPorts.length; i++)

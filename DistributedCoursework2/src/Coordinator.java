@@ -36,17 +36,36 @@ public class Coordinator {
     }
 
     private void getOutcome () {
-        while (true) {
-            for (ParticipantDetails p : participants) {
+        int counter = 0;
+        String messageReceived = null;
+        ParticipantDetails p;
+        while (counter < participantsNr) {
+            for (int i = 0; i < participants.size(); i++) {
+                p = participants.get(i);
                 try {
-                    if (p.getReader().ready()) {
-                        System.out.println(p.getReader().readLine());
+                    if (counter == 0 && p.getReader().ready()) {
+                        for (ParticipantDetails p2 : participants)
+                            p2.connection.setSoTimeout(5000);
+                        messageReceived = p.getReader().readLine();
+                        counter++;
+                    }
+                    else {
+                        messageReceived = p.getReader().readLine();
+                        counter++;
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.out.println("A ESUAT");
+                    counter++;
                 }
             }
         }
+        System.out.println(messageReceived);
+        if (messageReceived.equals("null")) {
+            sendRestartToAll();
+            getOutcome();
+        }
+        else
+            System.out.println("THE OUTCOME IS " + messageReceived);
     }
 
     private void getPorts () {
@@ -67,13 +86,26 @@ public class Coordinator {
 
     }
 
+    private void sendRestartToAll () {
+        OutputStreamWriter writer;
+        for (ParticipantDetails p : participants) {
+            try {
+                writer = new OutputStreamWriter(p.getConnection().getOutputStream());
+                writer.write("RESTART\n");
+                writer.flush();
+            } catch (IOException e) {
+                //e.printStackTrace();
+            }
+        }
+
+    }
+
     private void sendOptions () throws IOException {
         OutputStreamWriter writer;
         for (int i = 0; i < participants.size(); i++) {
             writer = new OutputStreamWriter(participants.get(i).getConnection().getOutputStream());
             writer.write("VOTE_OPTIONS ");
             for (String o : options) {
-                System.out.println(o);
                 writer.write(o + " ");
             }
             writer.write("\n");
