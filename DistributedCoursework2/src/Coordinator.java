@@ -59,6 +59,10 @@ public class Coordinator {
                 }
             }
         }
+        if (messageReceived == null) {
+            System.out.println("All participants crashed");
+            System.exit(-1);
+        }
         System.out.println(messageReceived);
         if (messageReceived.equals("null")) {
             sendRestartToAll();
@@ -122,7 +126,6 @@ public class Coordinator {
             for (int j = 0; j < participants.size(); j++)
                 if (i != j) {
                     writer.write(participants.get(j).getPort() + " ");
-                    System.out.println (" portul este "+ participants.get(j).getPort());
                 }
             writer.write("\n");
             writer.flush();

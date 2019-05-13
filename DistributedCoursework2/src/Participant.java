@@ -38,26 +38,68 @@ public class Participant {
         connectToOtherParticipants();
         getOptions();
         vote();
-        runFirstRoundConsensusAlgorithm();
+        runConsensusAlgorithm();
 
     }
-    private void runFirstRoundConsensusAlgorithm() {
+    private void runConsensusAlgorithm() {
         for (Socket s : outputSocketsMap.values()) {
-            sendMessage(s, "VOTE " + port + " " + vote);
+            String votesToSend = new String("VOTE");
+            for (Integer port : newVotes.keySet())
+                votesToSend = votesToSend + " " + port + " " + newVotes.get(port);
+            System.out.println ("Sends votes " + votesToSend);
+            sendMessage(s, votesToSend);
+            if (failureCondition == 1) {
+                System.out.println ("Will fail now");
+                System.exit(0);
+            }
         }
+        boolean justSent = (!newVotes.isEmpty());
+        newVotes.clear();
+        boolean toNextRound = false;
+        for (Socket s : inputSockets) {
+            try {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                String message = reader.readLine();
+                System.out.println("received " + message);
+                toNextRound = parseVoteMessage(message) ||  toNextRound;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (failureCondition == 2)
+            System.exit(0);
+        if (toNextRound && !justSent)
+            runConsensusAlgorithm();
+        else
+            decideOutcome();
     }
+
+    boolean parseVoteMessage (String message) {
+        boolean toNextRound = false;
+        String[] splittedMessage = message.split(" ");
+        for (int i = 1; i < splittedMessage.length; i += 2) {
+            toNextRound = true;
+            addVote(Integer.valueOf(splittedMessage[i]), splittedMessage[i + 1]);
+        }
+        return toNextRound;
+    }
+
     private List<Thread> threads = new ArrayList<>();
 
     private void decideOutcome() {
-        if (port == 12346) {
+        /*if (port == 12346) {
             for (Thread t : threads)
                 t.interrupt();
             System.exit(0);
-        }
+        }*/
+        for (Integer port : oldVotes.keySet())
+            if (votes.get(port) == null)
+                votes.put(port, oldVotes.get(port));
+
         Map<String, Integer> voteCounter = new HashMap<>();
         String message = new String(" ");
         for (Integer p : votes.keySet()) {
-            message = message + String.valueOf(p) + " ";
+            message = message + p + " ";
             if (voteCounter.get(votes.get(p)) != null)
                 voteCounter.put(votes.get(p), voteCounter.get(votes.get(p)) + 1);
             else 
@@ -70,9 +112,9 @@ public class Participant {
                 maxim = voteCounter.get(s);
                 candidate = s;
             }
-        System.out.println(maxim + " " + candidate);
+        System.out.println("Sends to coordinator " + message);
         if (maxim >= votes.keySet().size() / 2 + 1) {
-            System.out.println("e majoritate");
+            System.out.println("E majoritate");
             sendMessage(serverConnection, candidate + message);
         }
         else
@@ -83,11 +125,10 @@ public class Participant {
 
     private void waitForRestart() {
         try {
-            System.out.println("waiting for restart");
-            serverConnection.setSoTimeout(60000);
+            System.out.println("Waiting for restart");
             if (coordinatorReader.readLine().equals("RESTART")) {
-                System.out.println("Dam restart");
-                serverConnection.setSoTimeout(0);
+                System.out.println("Restarting");
+                reset();
             }
         } catch (IOException e) {
             for (Thread t : threads)
@@ -97,37 +138,33 @@ public class Participant {
 
     }
 
-    synchronized public void announceFailure () {
-        fails++;
+    private Map<Integer, String> oldVotes = new HashMap<>();
+    private void reset () {
+        for (Integer port : votes.keySet())
+            oldVotes.put(port, votes.get(port));
+        votes.clear();
+        options.remove(options.size() - 1);
+        vote();
+        runConsensusAlgorithm();
     }
 
     private Map<Integer, String> votes = new HashMap<>();
 
-    private int timeouts = 0, fails = 0;
-    private List<Integer> newVotes = new ArrayList<>();
+    private int fails = 0;
+    private Map<Integer, String> newVotes = new HashMap<>();
     synchronized void addVote (Integer port, String vote) {
-        timeouts = 0;
         if (votes.get(port) == null ) {
             votes.put(port, vote);
             System.out.println(port + " added vote " + vote);
-            newVotes.add(port);
+            newVotes.put(port, vote);
         }
     }
-    //TODO disconnect when all participants have timeouted
 
-    synchronized public void increaseTimeouts () {
-        timeouts++;
-        System.out.println(timeouts);
-        if (timeouts == ports.size() - fails) {
-            decideOutcome();
-        }
-    }
     private String vote;
-
     private void vote () {
-        System.out.println(" size " + options.size());
         vote = new String(options.get((new Random().nextInt(options.size()))));
         votes.put(port, vote);
+        newVotes.put(port, vote);
         System.out.println("I chose " + vote);
     }
     List<String> options = new ArrayList<>();
@@ -138,11 +175,9 @@ public class Participant {
             while (!coordinatorReader.ready()) {
             }
             options = coordinatorReader.readLine();
-            System.out.println("optiuni " + options);
             String[] spittedOptions = options.split(" ");
             for (int i = 1; i < spittedOptions.length; i++) {
                 this.options.add(spittedOptions[i]);
-                System.out.println("options receive on " + this.port + " " + spittedOptions[i]);
             }
         }
         catch (IOException e) {
@@ -153,18 +188,21 @@ public class Participant {
 
     Map<Integer, Socket> outputSocketsMap = new HashMap<>();
     private void connectToOtherParticipants () {
-        Thread thread = new Thread(new ParticipantAcceptThread(this, ports, serverSocket));
-        threads.add(thread);
-        thread.start();
-
         for (Integer port : ports)
             addOutputSocket(port);
+        for (int i = 0; i < ports.size(); i++) {
+            try {
+                addInputSocket(serverSocket.accept());
+                System.out.println ("New connection accepted");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
      private void addOutputSocket (Integer port) {
         try {
-            System.out.println("aici");
             Socket socket = new Socket("localhost", port);
-            System.out.println(this.port + " connected to " + port);
             outputSocketsMap.put(port, socket);
         } catch (IOException e) {
             e.printStackTrace();
@@ -184,7 +222,6 @@ public class Participant {
             String inputPorts;
             while (!coordinatorReader.ready()) {}
             inputPorts =  coordinatorReader.readLine();
-            System.out.println("ports " + inputPorts);
             String[] splittedPorts = inputPorts.split(" ");
             for (int i = 1; i < splittedPorts.length; i++)
                 ports.add(Integer.valueOf(splittedPorts[i]));
@@ -195,7 +232,6 @@ public class Participant {
     private void sendPortToServer() {
         try {
             coordinatorWriter = new OutputStreamWriter(serverConnection.getOutputStream());
-            System.out.println(port);
             coordinatorWriter.write("JOIN " + port + "\n");
             coordinatorWriter.flush();
         } catch (IOException e) {
