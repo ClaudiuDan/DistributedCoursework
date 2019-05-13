@@ -47,10 +47,14 @@ public class Coordinator {
                         for (ParticipantDetails p2 : participants)
                             p2.connection.setSoTimeout(5000);
                         messageReceived = p.getReader().readLine();
+                        if (messageReceived == null)
+                            throw (new IOException());
                         counter++;
                     }
                     else {
                         messageReceived = p.getReader().readLine();
+                        if (messageReceived == null)
+                            throw (new IOException());
                         counter++;
                     }
                 } catch (IOException e) {

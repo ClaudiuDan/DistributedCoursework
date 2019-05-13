@@ -60,6 +60,8 @@ public class Participant {
             try {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
                 String message = reader.readLine();
+                if (message == null)
+                    throw (new IOException());
                 System.out.println("received " + message);
                 toNextRound = parseVoteMessage(message) ||  toNextRound;
             } catch (IOException e) {
