@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -36,7 +37,7 @@ public class Coordinator {
             getOutcome();
         }
     }
-
+    boolean fails[];
     private void getOutcome () {
         int counter = 0;
         String messageReceived = null;
@@ -50,12 +51,16 @@ public class Coordinator {
                     if (messageReceived == null)
                         throw (new IOException());
                     atLeastOne = true;
+                    fails[i] = false;
                     counter++;
                     System.out.println(counter + " received from");
                 } catch (IOException e) {
-                    System.out.println("A ESUAT");
-                    counter++;
-                    System.out.println(counter + " received from");
+                    if (fails[i] == false) {
+                        System.out.println("A ESUAT");
+                        counter++;
+                        System.out.println(counter + " received from");
+                    }
+                    fails[i] = true;
                 }
             }
         }
@@ -149,6 +154,8 @@ public class Coordinator {
     private void parseArgs (String[] args) {
         port = Integer.parseInt(args[0]);
         participantsNr = Integer.parseInt(args[1]);
+        fails = new boolean[participantsNr];
+        Arrays.fill(fails, false);
         options = new ArrayList<>();
         try {
             serverSocket = new ServerSocket(port);

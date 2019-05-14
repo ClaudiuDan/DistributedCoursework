@@ -144,9 +144,9 @@ public class Participant {
     private Map<Integer, String> oldVotes = new HashMap<>();
     private void reset () {
         options.remove(options.size() - 1);
-        for (Integer port : votes.keySet())
+        /*for (Integer port : votes.keySet())
             if (options.contains(votes.get(port)))
-                oldVotes.put(port, votes.get(port));
+                oldVotes.put(port, votes.get(port));*/
         votes.clear();
         vote();
         runConsensusAlgorithm();
