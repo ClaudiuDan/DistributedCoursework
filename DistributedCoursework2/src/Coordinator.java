@@ -41,6 +41,7 @@ public class Coordinator {
     private void getOutcome () {
         int counter = 0;
         String messageReceived = null;
+        String outcome = null;
         boolean atLeastOne = false;
         ParticipantDetails p;
         while (counter < participantsNr) {
@@ -62,6 +63,8 @@ public class Coordinator {
                     }
                     fails[i] = true;
                 }
+                if (messageReceived != null && outcome == null)
+                    outcome = messageReceived;
             }
         }
         System.out.println(atLeastOne + " " + counter + " " + participantsNr);
@@ -69,12 +72,12 @@ public class Coordinator {
             System.out.println("All participants crashed");
             System.exit(-1);
         }
-        System.out.println(messageReceived);
-        if (messageReceived.equals("OUTCOME null")) {
+        System.out.println(outcome);
+        if (outcome.equals("OUTCOME null")) {
             sendRestartToAll();
         }
         else {
-            System.out.println("THE OUTCOME IS " + messageReceived);
+            System.out.println("THE OUTCOME IS " + outcome);
             System.exit(0);
         }
     }
