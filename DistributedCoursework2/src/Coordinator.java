@@ -40,6 +40,7 @@ public class Coordinator {
     boolean fails[];
     private void getOutcome () {
         int counter = 0;
+        Arrays.fill(fails, false);
         String messageReceived = null;
         String outcome = null;
         boolean atLeastOne = false;
@@ -158,7 +159,6 @@ public class Coordinator {
         port = Integer.parseInt(args[0]);
         participantsNr = Integer.parseInt(args[1]);
         fails = new boolean[participantsNr];
-        Arrays.fill(fails, false);
         options = new ArrayList<>();
         try {
             serverSocket = new ServerSocket(port);
