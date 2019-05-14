@@ -32,48 +32,43 @@ public class Coordinator {
             e.printStackTrace();
             System.out.println ("Couldn't send message to the participants");
         }
-        getOutcome();
+        while (true) {
+            getOutcome();
+        }
     }
 
     private void getOutcome () {
         int counter = 0;
         String messageReceived = null;
+        boolean atLeastOne = false;
         ParticipantDetails p;
         while (counter < participantsNr) {
             for (int i = 0; i < participants.size(); i++) {
                 p = participants.get(i);
                 try {
-                    if (counter == 0 && p.getReader().ready()) {
-                        for (ParticipantDetails p2 : participants)
-                            p2.connection.setSoTimeout(5000);
-                        messageReceived = p.getReader().readLine();
-                        if (messageReceived == null)
-                            throw (new IOException());
-                        counter++;
-                    }
-                    else {
-                        messageReceived = p.getReader().readLine();
-                        if (messageReceived == null)
-                            throw (new IOException());
-                        counter++;
-                    }
+                    messageReceived = p.getReader().readLine();
+                    if (messageReceived == null)
+                        throw (new IOException());
+                    atLeastOne = true;
+                    counter++;
                 } catch (IOException e) {
                     System.out.println("A ESUAT");
                     counter++;
                 }
             }
         }
-        if (messageReceived == null) {
+        if (!atLeastOne) {
             System.out.println("All participants crashed");
             System.exit(-1);
         }
         System.out.println(messageReceived);
-        if (messageReceived.equals("null")) {
+        if (messageReceived.equals("OUTCOME null")) {
             sendRestartToAll();
-            getOutcome();
         }
-        else
+        else {
             System.out.println("THE OUTCOME IS " + messageReceived);
+            System.exit(0);
+        }
     }
 
     private void getPorts () {

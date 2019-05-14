@@ -50,19 +50,25 @@ public class Participant {
             sendMessage(s, votesToSend);
             if (failureCondition == 1) {
                 System.out.println ("Will fail now");
+                try {
+                    Thread.sleep(100
+                    );
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 System.exit(0);
             }
         }
         boolean justSent = (!newVotes.isEmpty());
+        System.out.println("sizeul e " + newVotes.size() + " " + justSent);
         newVotes.clear();
         boolean toNextRound = false;
-        for (Socket s : inputSockets) {
+        for (BufferedReader reader : inputSockets) {
             try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
                 String message = reader.readLine();
+                System.out.println("received " + message);
                 if (message == null)
                     throw (new IOException());
-                System.out.println("received " + message);
                 toNextRound = parseVoteMessage(message) ||  toNextRound;
             } catch (IOException e) {
                 e.printStackTrace();
@@ -70,7 +76,7 @@ public class Participant {
         }
         if (failureCondition == 2)
             System.exit(0);
-        if (toNextRound && !justSent)
+        if (toNextRound || justSent)
             runConsensusAlgorithm();
         else
             decideOutcome();
@@ -89,19 +95,14 @@ public class Participant {
     private List<Thread> threads = new ArrayList<>();
 
     private void decideOutcome() {
-        /*if (port == 12346) {
-            for (Thread t : threads)
-                t.interrupt();
-            System.exit(0);
-        }*/
         for (Integer port : oldVotes.keySet())
             if (votes.get(port) == null)
                 votes.put(port, oldVotes.get(port));
 
         Map<String, Integer> voteCounter = new HashMap<>();
-        String message = new String(" ");
+        String message = new String("");
         for (Integer p : votes.keySet()) {
-            message = message + p + " ";
+            message = message + " " + p;
             if (voteCounter.get(votes.get(p)) != null)
                 voteCounter.put(votes.get(p), voteCounter.get(votes.get(p)) + 1);
             else 
@@ -117,10 +118,10 @@ public class Participant {
         System.out.println("Sends to coordinator " + message);
         if (maxim >= votes.keySet().size() / 2 + 1) {
             System.out.println("E majoritate");
-            sendMessage(serverConnection, candidate + message);
+            sendMessage(serverConnection, "OUTCOME " + candidate + message);
         }
         else
-            sendMessage(serverConnection, null);
+            sendMessage(serverConnection, "OUTCOME null");
 
         waitForRestart();
     }
@@ -212,10 +213,14 @@ public class Participant {
         }
     }
 
-    private List<Socket> inputSockets = new ArrayList<>();
+    private List<BufferedReader> inputSockets = new ArrayList<>();
 
     synchronized void addInputSocket (Socket socket) {
-        inputSockets.add(socket);
+        try {
+            inputSockets.add(new BufferedReader(new InputStreamReader(socket.getInputStream())));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     List<Integer> ports = new ArrayList<>();
 
