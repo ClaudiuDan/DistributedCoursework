@@ -51,12 +51,15 @@ public class Coordinator {
                         throw (new IOException());
                     atLeastOne = true;
                     counter++;
+                    System.out.println(counter + " received from");
                 } catch (IOException e) {
                     System.out.println("A ESUAT");
                     counter++;
+                    System.out.println(counter + " received from");
                 }
             }
         }
+        System.out.println(atLeastOne + " " + counter + " " + participantsNr);
         if (!atLeastOne) {
             System.out.println("All participants crashed");
             System.exit(-1);
