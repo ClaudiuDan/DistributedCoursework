@@ -14,10 +14,6 @@ public class Coordinator {
 
     public static void main (String[] args) {
         Coordinator coordinator = new Coordinator();
-
-        // just for testings
-        //args = coordinator.testing();
-
         coordinator.parseArgs(args);
         coordinator.start();
     }
@@ -30,7 +26,7 @@ public class Coordinator {
             sendOptions();
         }
         catch (IOException e) {
-            e.printStackTrace();
+            //e.printStackTrace();
             System.out.println ("Couldn't send message to the participants");
         }
         while (true) {
@@ -45,6 +41,8 @@ public class Coordinator {
         String outcome = null;
         boolean atLeastOne = false;
         ParticipantDetails p;
+
+        // waits for outcomes from the participants
         while (counter < participantsNr) {
             for (int i = 0; i < participants.size(); i++) {
                 p = participants.get(i);
@@ -55,12 +53,10 @@ public class Coordinator {
                     atLeastOne = true;
                     fails[i] = false;
                     counter++;
-                    System.out.println(counter + " received from");
+                    System.out.println("COORDINATOR " + " received from " + p.getPort() + " " + messageReceived);
                 } catch (IOException e) {
                     if (fails[i] == false) {
-                        System.out.println("A ESUAT");
                         counter++;
-                        System.out.println(counter + " received from");
                     }
                     fails[i] = true;
                 }
@@ -70,31 +66,29 @@ public class Coordinator {
         }
         System.out.println(atLeastOne + " " + counter + " " + participantsNr);
         if (!atLeastOne) {
-            System.out.println("All participants crashed");
+            System.out.println("COORDINATOR " + " all participants crashed");
             System.exit(-1);
         }
         System.out.println(outcome);
-        if (outcome.equals("OUTCOME null")) {
+        if (outcome.equals("COORDINATOR there is a tie, will restart")) {
             sendRestartToAll();
         }
         else {
-            System.out.println("THE OUTCOME IS " + outcome);
+            System.out.println("COORDINATOR the outcome is " + outcome);
             System.exit(0);
         }
     }
 
     private void getPorts () {
-        Scanner reader;
+        BufferedReader reader;
         for (ParticipantDetails p : participants) {
             try {
-                reader = new Scanner(p.getConnection().getInputStream());
-                while (!reader.hasNext()) {
-                }
-                p.setPort(Integer.parseInt(reader.nextLine().split(" ")[1]));
+                reader = p.getReader();
+                p.setPort(Integer.parseInt(reader.readLine().split(" ")[1]));
                 System.out.println("Port " + p.getPort() + " receive!");
             } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println("Couldn't read ports");
+                //e.printStackTrace();
+                System.out.println("COORDINATOR couldn't read ports");
             }
 
         }
@@ -149,8 +143,8 @@ public class Coordinator {
             try {
                 participants.add(new ParticipantDetails(serverSocket.accept()));
             } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println("Client could not connect");
+                //e.printStackTrace();
+                System.out.println("COORDINATOR a client could not connect");
             }
         }
     }
@@ -167,16 +161,6 @@ public class Coordinator {
         }
         for (int i = 2; i < args.length; i++)
             options.add(args[i]);
-    }
-
-    private String[] testing () {
-        String[] args = new String[5];
-        args[0] = "12345";
-        args[1] = "2";
-        args[2] = "A";
-        args[3] = "B";
-        args[4] = "C";
-        return args;
     }
 
     class ParticipantDetails {
