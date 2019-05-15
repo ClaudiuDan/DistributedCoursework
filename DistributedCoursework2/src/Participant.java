@@ -27,8 +27,12 @@ public class Participant {
         connectToOtherParticipants();
         getOptions();
         vote();
-        runConsensusAlgorithm();
-
+        int counter = 0;
+        while (true) {
+            ++counter;
+            System.out.println("PARTICIPANT " + this.port + " enters round " + counter);
+            runConsensusAlgorithm();
+        }
     }
     private void runConsensusAlgorithm() {
 
@@ -72,7 +76,7 @@ public class Participant {
 
         // checks if another round will be played
         if (toNextRound || justSent)
-            runConsensusAlgorithm();
+            return;
         else
             decideOutcome();
     }
@@ -137,8 +141,7 @@ public class Participant {
                 reset();
             }
         } catch (IOException e) {
-            for (Thread t : threads)
-                t.interrupt();
+            System.out.println("PARTICIPANT " + port + " no restart needed, shutting down");
             System.exit(0);
         }
 

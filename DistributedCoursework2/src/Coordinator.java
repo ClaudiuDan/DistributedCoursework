@@ -27,7 +27,7 @@ public class Coordinator {
         }
         catch (IOException e) {
             //e.printStackTrace();
-            System.out.println ("Couldn't send message to the participants");
+            System.out.println ("COORDINATOR Couldn't send message to the participants");
         }
         while (true) {
             getOutcome();
@@ -53,7 +53,7 @@ public class Coordinator {
                     atLeastOne = true;
                     fails[i] = false;
                     counter++;
-                    System.out.println("COORDINATOR " + " received from " + p.getPort() + " " + messageReceived);
+                    System.out.println("COORDINATOR received from " + p.getPort() + " " + messageReceived);
                 } catch (IOException e) {
                     if (fails[i] == false) {
                         counter++;
@@ -64,13 +64,12 @@ public class Coordinator {
                     outcome = messageReceived;
             }
         }
-        System.out.println(atLeastOne + " " + counter + " " + participantsNr);
         if (!atLeastOne) {
-            System.out.println("COORDINATOR " + " all participants crashed");
+            System.out.println("COORDINATOR all participants crashed");
             System.exit(-1);
         }
-        System.out.println(outcome);
-        if (outcome.equals("COORDINATOR there is a tie, will restart")) {
+        if (outcome.equals("OUTCOME null")) {
+            System.out.println("COORDINATOR there is a tie, will restart the participants");
             sendRestartToAll();
         }
         else {
@@ -85,7 +84,7 @@ public class Coordinator {
             try {
                 reader = p.getReader();
                 p.setPort(Integer.parseInt(reader.readLine().split(" ")[1]));
-                System.out.println("Port " + p.getPort() + " receive!");
+                System.out.println("COORDINATOR connected to port " + p.getPort());
             } catch (IOException e) {
                 //e.printStackTrace();
                 System.out.println("COORDINATOR couldn't read ports");
